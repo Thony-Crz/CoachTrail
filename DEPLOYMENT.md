@@ -1,6 +1,8 @@
 # Deployment Guide for GitHub Pages with CORS Proxy
 
-This guide walks you through deploying CoachTrail to GitHub Pages with the Polar API proxy.
+> **⚠️ RECOMMENDED APPROACH:** We now recommend using Vercel for deployment, which provides both static hosting and serverless backend functions. This is simpler, more secure, and doesn't require a separate CORS proxy. See **[VERCEL_DEPLOYMENT.md](VERCEL_DEPLOYMENT.md)** for instructions.
+
+This guide walks you through the **alternative approach** of deploying CoachTrail to GitHub Pages with a separate Cloudflare Workers CORS proxy. Use this if you specifically want to use GitHub Pages for hosting.
 
 ## Prerequisites
 

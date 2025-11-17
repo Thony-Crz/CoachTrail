@@ -21,16 +21,16 @@
 ### Feature 3: Polar Flow Integration ⚡
 - Connect your Polar Flow account to automatically import trail running activities
 - **OAuth 2.0 authorization flow** - secure authentication without manually managing tokens
+- **Vercel serverless backend** - handles OAuth token exchange and API requests securely
 - Automatic user registration with Polar AccessLink API
 - One-click synchronization of running activities
 - Automatic filtering of trail running activities (running, trail running, mountain running, etc.)
 - Avoids duplicate imports by checking existing run dates
-- **⚠️ CORS Proxy Required**: Due to Polar API CORS restrictions, a proxy is needed for production. See [proxy/README.md](proxy/README.md) for setup instructions.
 - **How to use:**
-  1. **Set up CORS proxy** (production only - see [proxy/README.md](proxy/README.md))
+  1. Deploy to Vercel (recommended) - see [VERCEL_DEPLOYMENT.md](VERCEL_DEPLOYMENT.md)
   2. Visit [Polar AccessLink Admin](https://admin.polaraccesslink.com/)
   3. Create a new OAuth2 client application
-  4. Set the redirect URL to your app URL (e.g., `https://yourdomain.com/CoachTrail/`)
+  4. Set the redirect URL to your Vercel app URL (e.g., `https://your-app.vercel.app/`)
   5. Copy your Client ID and Client Secret
   6. Enter credentials in the app and click "Save Credentials"
   7. Click "🔗 Connect with Polar" to authorize the app
@@ -39,34 +39,61 @@
 
 ## Architecture
 
-This project follows **Clean Architecture** principles:
+This project follows **Clean Architecture** principles with a serverless backend:
 
 ```
-src/
-├── domain/
-│   ├── entities/       # Business entities (TrailRun, PolarCredentials, PolarActivity)
-│   ├── repositories/   # Repository interfaces
-│   └── use-cases/      # Application business rules
-├── adapters/
-│   ├── repositories/   # Implementation (localStorage)
-│   └── api/            # External API services (Polar AccessLink)
-└── ui/
-    └── components/     # Svelte UI components
+Repository Structure:
+├── src/                 # Frontend (Svelte app)
+│   ├── domain/
+│   │   ├── entities/       # Business entities (TrailRun, PolarCredentials, PolarActivity)
+│   │   ├── repositories/   # Repository interfaces
+│   │   ├── services/       # Domain services (OAuth, etc.)
+│   │   └── use-cases/      # Application business rules
+│   ├── adapters/
+│   │   ├── repositories/   # Implementation (localStorage)
+│   │   └── api/            # API service adapters
+│   └── ui/
+│       └── components/     # Svelte UI components
+└── api/                 # Backend (Vercel serverless functions)
+    ├── token.ts            # OAuth token exchange
+    ├── register.ts         # User registration
+    └── activities.ts       # Activity synchronization
 ```
 
 ### Layers:
-- **Domain**: Core business logic, independent of frameworks
-- **Use Cases**: Application-specific business rules
-- **Adapters**: Interface adapters (localStorage implementation)
-- **UI**: Svelte components for presentation
+- **Frontend (src/)**
+  - **Domain**: Core business logic, independent of frameworks
+  - **Use Cases**: Application-specific business rules
+  - **Adapters**: Interface adapters (localStorage, API clients)
+  - **UI**: Svelte components for presentation
+  
+- **Backend (api/)**
+  - **Serverless Functions**: Vercel functions that handle Polar API requests
+  - **CORS Handling**: Properly configured CORS headers
+  - **Security**: Client secret kept server-side, never exposed to browser
+
+### Data Flow:
+```
+User → Frontend (Svelte) → Backend (Vercel Functions) → Polar API
+                    ↓
+              localStorage (TrailRuns)
+```
 
 ## Tech Stack
 
+### Frontend
 - **Svelte 5** - Modern reactive UI framework
 - **TypeScript** - Type-safe development
 - **Vite** - Fast build tool
 - **localStorage** - Client-side data persistence
-- **GitHub Pages** - Static site hosting
+
+### Backend
+- **Vercel Serverless Functions** - Node.js serverless backend
+- **TypeScript** - Type-safe API development
+
+### Deployment
+- **Vercel** - Static hosting + serverless functions (recommended)
+- **GitHub Pages** - Alternative static hosting (requires separate CORS proxy)
 
 ## Development
 
@@ -89,17 +116,25 @@ npm run preview
 
 ## Deployment
 
-The app is automatically deployed to GitHub Pages via GitHub Actions when pushing to the `main` branch.
+### Recommended: Vercel (with Backend Support)
 
-**⚠️ Important**: Due to Polar API CORS restrictions, you need to set up a CORS proxy for production. See **[DEPLOYMENT.md](DEPLOYMENT.md)** for complete deployment instructions including proxy setup.
+The recommended way to deploy CoachTrail is using Vercel, which provides both static hosting and serverless functions for the backend API. This approach properly handles Polar API authentication and CORS without needing a separate proxy.
 
-### Quick Deployment Steps
+**See [VERCEL_DEPLOYMENT.md](VERCEL_DEPLOYMENT.md) for complete deployment instructions.**
 
-1. Set up a CORS proxy (Cloudflare Workers recommended - free)
-2. Add `VITE_POLAR_PROXY_URL` to GitHub repository secrets
-3. Push to `main` branch - GitHub Actions will build and deploy automatically
+Quick steps:
+1. Connect your GitHub repository to Vercel
+2. Deploy automatically
+3. Configure Polar OAuth2 credentials in the app
+4. Start syncing your activities!
 
-For detailed instructions, see **[DEPLOYMENT.md](DEPLOYMENT.md)**.
+### Alternative: GitHub Pages (with CORS Proxy)
+
+You can also deploy to GitHub Pages with a separate CORS proxy (Cloudflare Workers). This approach is more complex and requires managing two separate services.
+
+**See [DEPLOYMENT.md](DEPLOYMENT.md) for GitHub Pages deployment instructions.**
+
+**Note:** The Vercel approach is recommended as it's simpler, more secure (client secret stays server-side), and provides better integration.
 
 ### Manual Deployment
 ```bash
@@ -117,7 +152,7 @@ npm run deploy
 
 All trail run data is stored in browser localStorage under the key `coach-trail-runs`. Polar Flow credentials are stored under `coach-trail-polar-credentials`. Data persists across sessions but is local to each browser/device.
 
-**Note:** Your Polar credentials (Client ID and Secret) and access token are stored securely in your browser's localStorage and are never sent to any third-party servers except Polar's own API during the OAuth authorization flow.
+**Note:** Your Polar credentials (Client ID and Secret) are stored securely in your browser's localStorage. When you authenticate with Polar, the credentials are sent to the Vercel backend (which you control) to securely exchange authorization codes for access tokens. Your credentials are never sent to any third-party servers.
 
 ## License
 
