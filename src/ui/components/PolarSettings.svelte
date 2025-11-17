@@ -120,14 +120,23 @@
     
     isSaving = true;
     try {
+      // Trim whitespace from credentials to prevent OAuth errors
+      const trimmedClientId = clientId.trim();
+      const trimmedClientSecret = clientSecret.trim();
+      
       const credentials: PolarCredentials = {
-        clientId,
-        clientSecret,
+        clientId: trimmedClientId,
+        clientSecret: trimmedClientSecret,
         accessToken: accessToken || undefined,
         userId: userId || undefined,
       };
       
       await savePolarCredentialsUseCase.execute(credentials);
+      
+      // Update UI state with trimmed values
+      clientId = trimmedClientId;
+      clientSecret = trimmedClientSecret;
+      
       hasCredentials = true;
       syncMessage = 'Credentials saved successfully! Click "Connect with Polar" to authorize.';
       setTimeout(() => syncMessage = '', 3000);

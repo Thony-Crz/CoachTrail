@@ -15,7 +15,14 @@ export class LocalStoragePolarCredentialsRepository implements PolarCredentialsR
   }
 
   async save(credentials: PolarCredentials): Promise<void> {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(credentials));
+    // Trim whitespace from credentials to prevent OAuth errors
+    const trimmedCredentials: PolarCredentials = {
+      clientId: credentials.clientId?.trim(),
+      clientSecret: credentials.clientSecret?.trim(),
+      accessToken: credentials.accessToken?.trim(),
+      userId: credentials.userId?.trim(),
+    };
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(trimmedCredentials));
   }
 
   async clear(): Promise<void> {
