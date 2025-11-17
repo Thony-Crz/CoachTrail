@@ -1,12 +1,13 @@
-import { getPolarApiUrl } from '../../config/env';
+import { getBackendApiUrl } from '../../config/env';
 
 /**
  * Service to handle Polar OAuth 2.0 authorization flow with PKCE
+ * Now uses Vercel backend to handle token exchange and user registration
  */
 export class PolarOAuthService {
   private readonly authorizationEndpoint = 'https://flow.polar.com/oauth2/authorization';
-  private readonly tokenEndpoint = 'https://polarremote.com/v2/oauth2/token';
-  private readonly registerEndpoint = getPolarApiUrl('/v3/users');
+  private readonly tokenEndpoint = getBackendApiUrl('/api/token');
+  private readonly registerEndpoint = getBackendApiUrl('/api/register');
   
   /**
    * Generate a random string for code verifier (PKCE)
@@ -76,7 +77,7 @@ export class PolarOAuthService {
   }
   
   /**
-   * Exchange authorization code for access token
+   * Exchange authorization code for access token via Vercel backend
    */
   async exchangeCodeForToken(
     code: string,
@@ -96,26 +97,24 @@ export class PolarOAuthService {
       throw new Error('Code verifier not found');
     }
     
-    // Exchange code for token
-    const params = new URLSearchParams({
-      grant_type: 'authorization_code',
-      code: code,
-      redirect_uri: redirectUri,
-      code_verifier: codeVerifier,
-    });
-    
+    // Exchange code for token via Vercel backend
     const response = await fetch(this.tokenEndpoint, {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
-        'Authorization': 'Basic ' + btoa(`${clientId}:${clientSecret}`),
+        'Content-Type': 'application/json',
       },
-      body: params.toString(),
+      body: JSON.stringify({
+        code,
+        clientId,
+        clientSecret,
+        redirectUri,
+        codeVerifier,
+      }),
     });
     
     if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(`Token exchange failed: ${response.status} ${errorText}`);
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(`Token exchange failed: ${response.status} ${errorData.error || ''}`);
     }
     
     const data = await response.json();
@@ -125,42 +124,35 @@ export class PolarOAuthService {
     sessionStorage.removeItem('polar_oauth_state');
     
     return {
-      accessToken: data.access_token,
-      expiresIn: data.expires_in,
-      tokenType: data.token_type,
+      accessToken: data.accessToken,
+      expiresIn: data.expiresIn,
+      tokenType: data.tokenType,
     };
   }
   
   /**
-   * Register user with Polar AccessLink API to get user ID
+   * Register user with Polar AccessLink API to get user ID via Vercel backend
    * This must be done once after getting the access token
    */
   async registerUser(accessToken: string): Promise<{ userId: string }> {
     const response = await fetch(this.registerEndpoint, {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${accessToken}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        'member-id': crypto.randomUUID(), // Generate a unique member ID
+        accessToken,
+        memberId: crypto.randomUUID(), // Generate a unique member ID
       }),
     });
     
-    // 409 Conflict means user is already registered - that's OK
-    if (response.status === 409) {
-      // User already registered, get the user ID from the response
-      const data = await response.json();
-      return { userId: data['polar-user-id'] };
-    }
-    
     if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(`User registration failed: ${response.status} ${errorText}`);
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(`User registration failed: ${response.status} ${errorData.error || ''}`);
     }
     
     const data = await response.json();
-    return { userId: data['polar-user-id'] };
+    return { userId: data.userId };
   }
   
   /**
