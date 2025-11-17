@@ -4,7 +4,8 @@ import { svelte } from '@sveltejs/vite-plugin-svelte'
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [svelte()],
-  base: '/CoachTrail/', // GitHub Pages repository name
+  // Use root path for Vercel, /CoachTrail/ for GitHub Pages
+  base: process.env.VERCEL ? '/' : '/CoachTrail/',
   server: {
     proxy: {
       // Proxy Polar API requests to avoid CORS issues in development
