@@ -1,6 +1,13 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 
 /**
+ * Type definitions for Polar API responses
+ */
+interface PolarUserResponse {
+  'polar-user-id': string;
+}
+
+/**
  * Vercel Serverless Function: Polar User Registration
  * 
  * This endpoint registers a user with the Polar AccessLink API.
@@ -48,7 +55,7 @@ export default async function handler(
 
     // 409 Conflict means user is already registered - that's OK
     if (registerResponse.status === 409) {
-      const data = await registerResponse.json();
+      const data = await registerResponse.json() as PolarUserResponse;
       return res.status(200).json({ 
         userId: data['polar-user-id'],
         alreadyRegistered: true
@@ -64,7 +71,7 @@ export default async function handler(
       });
     }
 
-    const data = await registerResponse.json();
+    const data = await registerResponse.json() as PolarUserResponse;
     return res.status(200).json({ 
       userId: data['polar-user-id'],
       alreadyRegistered: false

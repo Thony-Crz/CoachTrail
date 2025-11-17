@@ -1,6 +1,15 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 
 /**
+ * Type definitions for OAuth token response
+ */
+interface TokenResponse {
+  access_token: string;
+  expires_in: number;
+  token_type: string;
+}
+
+/**
  * Vercel Serverless Function: OAuth Token Exchange
  * 
  * This endpoint exchanges an authorization code for an access token
@@ -62,7 +71,7 @@ export default async function handler(
       });
     }
 
-    const tokenData = await tokenResponse.json();
+    const tokenData = await tokenResponse.json() as TokenResponse;
 
     return res.status(200).json({
       accessToken: tokenData.access_token,
