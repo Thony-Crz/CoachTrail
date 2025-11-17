@@ -1,6 +1,26 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 
 /**
+ * Type definitions for Polar API responses
+ */
+interface TransactionResponse {
+  'transaction-id'?: number;
+}
+
+interface ExerciseListResponse {
+  exercises?: string[];
+}
+
+interface ExerciseResponse {
+  id?: string;
+  'start-time'?: string;
+  sport?: string;
+  distance?: number;
+  ascent?: number;
+  duration?: string;
+}
+
+/**
  * Vercel Serverless Function: Fetch Polar Activities
  * 
  * This endpoint fetches activities from the Polar AccessLink API
@@ -55,7 +75,7 @@ export default async function handler(
       });
     }
 
-    const transactionData = await transactionResponse.json();
+    const transactionData = await transactionResponse.json() as TransactionResponse;
     
     if (!transactionData['transaction-id']) {
       // No new exercises
@@ -83,7 +103,7 @@ export default async function handler(
       });
     }
 
-    const exerciseList = await listResponse.json();
+    const exerciseList = await listResponse.json() as ExerciseListResponse;
     const activities = [];
 
     // Fetch each exercise's details
@@ -96,7 +116,7 @@ export default async function handler(
         });
 
         if (exerciseResponse.ok) {
-          const exercise = await exerciseResponse.json();
+          const exercise = await exerciseResponse.json() as ExerciseResponse;
           activities.push({
             id: exercise.id || generateActivityId(),
             date: exercise['start-time'] || new Date().toISOString(),
