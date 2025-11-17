@@ -1,10 +1,12 @@
+import { getPolarApiUrl } from '../../config/env';
+
 /**
  * Service to handle Polar OAuth 2.0 authorization flow with PKCE
  */
 export class PolarOAuthService {
   private readonly authorizationEndpoint = 'https://flow.polar.com/oauth2/authorization';
   private readonly tokenEndpoint = 'https://polarremote.com/v2/oauth2/token';
-  private readonly registerEndpoint = 'https://www.polaraccesslink.com/v3/users';
+  private readonly registerEndpoint = getPolarApiUrl('/v3/users');
   
   /**
    * Generate a random string for code verifier (PKCE)
