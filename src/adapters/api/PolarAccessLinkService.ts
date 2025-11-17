@@ -1,8 +1,9 @@
 import type { PolarApiService } from '../../domain/repositories/PolarApiService';
 import type { PolarActivity } from '../../domain/entities/PolarActivity';
+import { getPolarApiBaseUrl } from '../../config/env';
 
 // Polar AccessLink API endpoints
-const POLAR_API_BASE = 'https://www.polaraccesslink.com/v3';
+const POLAR_API_BASE = getPolarApiBaseUrl();
 
 export class PolarAccessLinkService implements PolarApiService {
   /**
@@ -19,7 +20,7 @@ export class PolarAccessLinkService implements PolarApiService {
   async fetchActivities(accessToken: string, userId: string): Promise<PolarActivity[]> {
     try {
       // Fetch exercises from Polar AccessLink API
-      const response = await fetch(`${POLAR_API_BASE}/users/${userId}/exercise-transactions`, {
+      const response = await fetch(`${POLAR_API_BASE}/v3/users/${userId}/exercise-transactions`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${accessToken}`,
@@ -41,7 +42,7 @@ export class PolarAccessLinkService implements PolarApiService {
       
       // Get the list of exercise URLs
       const listResponse = await fetch(
-        `${POLAR_API_BASE}/users/${userId}/exercise-transactions/${transactionId}`,
+        `${POLAR_API_BASE}/v3/users/${userId}/exercise-transactions/${transactionId}`,
         {
           headers: {
             'Authorization': `Bearer ${accessToken}`,
@@ -72,7 +73,7 @@ export class PolarAccessLinkService implements PolarApiService {
 
       // Commit the transaction
       await fetch(
-        `${POLAR_API_BASE}/users/${userId}/exercise-transactions/${transactionId}`,
+        `${POLAR_API_BASE}/v3/users/${userId}/exercise-transactions/${transactionId}`,
         {
           method: 'PUT',
           headers: {

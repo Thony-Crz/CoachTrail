@@ -25,15 +25,17 @@
 - One-click synchronization of running activities
 - Automatic filtering of trail running activities (running, trail running, mountain running, etc.)
 - Avoids duplicate imports by checking existing run dates
+- **⚠️ CORS Proxy Required**: Due to Polar API CORS restrictions, a proxy is needed for production. See [proxy/README.md](proxy/README.md) for setup instructions.
 - **How to use:**
-  1. Visit [Polar AccessLink Admin](https://admin.polaraccesslink.com/)
-  2. Create a new OAuth2 client application
-  3. Set the redirect URL to your app URL (e.g., `https://yourdomain.com/CoachTrail/`)
-  4. Copy your Client ID and Client Secret
-  5. Enter credentials in the app and click "Save Credentials"
-  6. Click "🔗 Connect with Polar" to authorize the app
-  7. You'll be redirected to Polar to log in and grant permission
-  8. After authorization, you'll be redirected back and can sync your activities
+  1. **Set up CORS proxy** (production only - see [proxy/README.md](proxy/README.md))
+  2. Visit [Polar AccessLink Admin](https://admin.polaraccesslink.com/)
+  3. Create a new OAuth2 client application
+  4. Set the redirect URL to your app URL (e.g., `https://yourdomain.com/CoachTrail/`)
+  5. Copy your Client ID and Client Secret
+  6. Enter credentials in the app and click "Save Credentials"
+  7. Click "🔗 Connect with Polar" to authorize the app
+  8. You'll be redirected to Polar to log in and grant permission
+  9. After authorization, you'll be redirected back and can sync your activities
 
 ## Architecture
 
