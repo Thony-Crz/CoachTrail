@@ -20,16 +20,20 @@
 
 ### Feature 3: Polar Flow Integration ⚡
 - Connect your Polar Flow account to automatically import trail running activities
-- Secure credential storage in browser localStorage
+- **OAuth 2.0 authorization flow** - secure authentication without manually managing tokens
+- Automatic user registration with Polar AccessLink API
 - One-click synchronization of running activities
 - Automatic filtering of trail running activities (running, trail running, mountain running, etc.)
 - Avoids duplicate imports by checking existing run dates
 - **How to use:**
-  1. Get your credentials from [Polar AccessLink Admin](https://admin.polaraccesslink.com/)
-  2. Create a new client to obtain Client ID and Client Secret
-  3. After authorization, get your Access Token and User ID
-  4. Enter credentials in the app and click "Save Credentials"
-  5. Click "🔄 Sync Activities" to import your runs
+  1. Visit [Polar AccessLink Admin](https://admin.polaraccesslink.com/)
+  2. Create a new OAuth2 client application
+  3. Set the redirect URL to your app URL (e.g., `https://yourdomain.com/CoachTrail/`)
+  4. Copy your Client ID and Client Secret
+  5. Enter credentials in the app and click "Save Credentials"
+  6. Click "🔗 Connect with Polar" to authorize the app
+  7. You'll be redirected to Polar to log in and grant permission
+  8. After authorization, you'll be redirected back and can sync your activities
 
 ## Architecture
 
@@ -101,7 +105,7 @@ npm run deploy
 
 All trail run data is stored in browser localStorage under the key `coach-trail-runs`. Polar Flow credentials are stored under `coach-trail-polar-credentials`. Data persists across sessions but is local to each browser/device.
 
-**Note:** Your Polar credentials are stored securely in your browser's localStorage and are never sent to any third-party servers except Polar's own API.
+**Note:** Your Polar credentials (Client ID and Secret) and access token are stored securely in your browser's localStorage and are never sent to any third-party servers except Polar's own API during the OAuth authorization flow.
 
 ## License
 

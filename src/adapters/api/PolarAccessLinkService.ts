@@ -6,36 +6,10 @@ const POLAR_API_BASE = 'https://www.polaraccesslink.com/v3';
 
 export class PolarAccessLinkService implements PolarApiService {
   /**
-   * Authenticate with Polar API using client credentials
-   * Note: This is a simplified flow. In production, you'd use OAuth2 authorization code flow
-   * with proper redirect URIs and user consent.
+   * This method is deprecated - use PolarOAuthService instead
    */
   async authenticate(clientId: string, clientSecret: string): Promise<{ accessToken: string; userId: string }> {
-    // For this implementation, we'll use a basic auth approach
-    // In a real scenario, this would involve:
-    // 1. Redirect user to Polar's authorization URL
-    // 2. User grants permission
-    // 3. Polar redirects back with authorization code
-    // 4. Exchange code for access token
-    
-    // Since we're in a client-side only app, we'll simulate this
-    // by storing the credentials and using them for API calls
-    
-    // In production, you would do:
-    // const response = await fetch('https://polarremote.com/v2/oauth2/token', {
-    //   method: 'POST',
-    //   headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-    //   body: new URLSearchParams({
-    //     grant_type: 'authorization_code',
-    //     code: authCode,
-    //     redirect_uri: redirectUri,
-    //   }),
-    //   headers: {
-    //     'Authorization': 'Basic ' + btoa(clientId + ':' + clientSecret)
-    //   }
-    // });
-    
-    throw new Error('OAuth2 flow not yet implemented. Please use the Polar Flow web interface to authorize this app first.');
+    throw new Error('Please use the "Connect with Polar" button to authenticate via OAuth2 flow.');
   }
 
   /**

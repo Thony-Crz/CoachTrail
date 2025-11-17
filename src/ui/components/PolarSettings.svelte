@@ -3,6 +3,8 @@
   import type { GetPolarCredentialsUseCase } from '../../domain/use-cases/GetPolarCredentialsUseCase';
   import type { SyncPolarActivitiesUseCase } from '../../domain/use-cases/SyncPolarActivitiesUseCase';
   import type { PolarCredentials } from '../../domain/entities/PolarCredentials';
+  import { PolarOAuthService } from '../../domain/services/PolarOAuthService';
+  import { onMount } from 'svelte';
   
   interface Props {
     savePolarCredentialsUseCase: SavePolarCredentialsUseCase;
@@ -18,6 +20,8 @@
     onSyncComplete 
   }: Props = $props();
   
+  const oauthService = new PolarOAuthService();
+  
   let clientId = $state('');
   let clientSecret = $state('');
   let accessToken = $state('');
@@ -25,12 +29,21 @@
   let isExpanded = $state(false);
   let isSaving = $state(false);
   let isSyncing = $state(false);
+  let isConnecting = $state(false);
   let hasCredentials = $state(false);
+  let isConnected = $state(false);
   let syncMessage = $state('');
   
+  // Get redirect URI for OAuth callback
+  function getRedirectUri(): string {
+    const url = new URL(window.location.href);
+    return `${url.origin}${url.pathname}`;
+  }
+  
   // Load existing credentials on mount
-  $effect(() => {
-    loadCredentials();
+  onMount(async () => {
+    await loadCredentials();
+    await handleOAuthCallback();
   });
   
   async function loadCredentials() {
@@ -41,6 +54,62 @@
       accessToken = creds.accessToken || '';
       userId = creds.userId || '';
       hasCredentials = !!(creds.clientId && creds.clientSecret);
+      isConnected = !!(creds.accessToken && creds.userId);
+    }
+  }
+  
+  async function handleOAuthCallback() {
+    try {
+      const params = oauthService.parseCallbackParams(window.location.href);
+      if (!params) return; // Not a callback
+      
+      isConnecting = true;
+      syncMessage = 'Completing authorization...';
+      
+      // Get stored credentials
+      const creds = await getPolarCredentialsUseCase.execute();
+      if (!creds || !creds.clientId || !creds.clientSecret) {
+        throw new Error('Client credentials not found. Please save your Client ID and Secret first.');
+      }
+      
+      // Exchange code for token
+      const tokenData = await oauthService.exchangeCodeForToken(
+        params.code,
+        params.state,
+        creds.clientId,
+        creds.clientSecret,
+        getRedirectUri()
+      );
+      
+      // Register user and get user ID
+      const userData = await oauthService.registerUser(tokenData.accessToken);
+      
+      // Save the complete credentials
+      const updatedCreds: PolarCredentials = {
+        clientId: creds.clientId,
+        clientSecret: creds.clientSecret,
+        accessToken: tokenData.accessToken,
+        userId: userData.userId,
+      };
+      
+      await savePolarCredentialsUseCase.execute(updatedCreds);
+      
+      // Update state
+      accessToken = tokenData.accessToken;
+      userId = userData.userId;
+      isConnected = true;
+      syncMessage = 'Successfully connected to Polar! You can now sync your activities.';
+      
+      // Clean up URL
+      window.history.replaceState({}, document.title, window.location.pathname);
+      
+    } catch (error) {
+      console.error('OAuth callback error:', error);
+      syncMessage = `Authorization failed: ${error}`;
+      // Clean up URL even on error
+      window.history.replaceState({}, document.title, window.location.pathname);
+    } finally {
+      isConnecting = false;
     }
   }
   
@@ -60,7 +129,7 @@
       
       await savePolarCredentialsUseCase.execute(credentials);
       hasCredentials = true;
-      syncMessage = 'Credentials saved successfully! You can now sync your activities.';
+      syncMessage = 'Credentials saved successfully! Click "Connect with Polar" to authorize.';
       setTimeout(() => syncMessage = '', 3000);
     } catch (error) {
       console.error('Failed to save credentials:', error);
@@ -70,14 +139,46 @@
     }
   }
   
-  async function handleSync() {
+  async function handleConnect() {
     if (!hasCredentials) {
-      syncMessage = 'Please configure your Polar credentials first.';
+      syncMessage = 'Please save your Client ID and Client Secret first.';
       return;
     }
     
-    if (!accessToken || !userId) {
-      syncMessage = 'Please provide Access Token and User ID to sync.';
+    try {
+      isConnecting = true;
+      await oauthService.initiateAuthorization(clientId, getRedirectUri());
+    } catch (error) {
+      console.error('Failed to initiate authorization:', error);
+      syncMessage = `Failed to connect: ${error}`;
+      isConnecting = false;
+    }
+  }
+  
+  async function handleDisconnect() {
+    try {
+      const credentials: PolarCredentials = {
+        clientId,
+        clientSecret,
+        accessToken: undefined,
+        userId: undefined,
+      };
+      
+      await savePolarCredentialsUseCase.execute(credentials);
+      accessToken = '';
+      userId = '';
+      isConnected = false;
+      syncMessage = 'Disconnected from Polar.';
+      setTimeout(() => syncMessage = '', 3000);
+    } catch (error) {
+      console.error('Failed to disconnect:', error);
+      syncMessage = 'Failed to disconnect. Please try again.';
+    }
+  }
+  
+  async function handleSync() {
+    if (!isConnected) {
+      syncMessage = 'Please connect to Polar first.';
       return;
     }
     
@@ -111,7 +212,7 @@
 
 <div class="polar-settings">
   <div class="header" onclick={toggleExpanded} onkeydown={(e) => e.key === 'Enter' && toggleExpanded()} role="button" tabindex="0">
-    <h3>⚡ Polar Flow Integration</h3>
+    <h3>⚡ Polar Flow Integration {isConnected ? '✓' : ''}</h3>
     <button type="button" class="toggle-btn" aria-label={isExpanded ? 'Collapse' : 'Expand'}>
       {isExpanded ? '▼' : '▶'}
     </button>
@@ -123,12 +224,25 @@
         <p>
           Connect your Polar Flow account to automatically import your trail running activities.
         </p>
+        
+        {#if isConnected}
+          <div class="connection-status connected">
+            ✓ Connected to Polar Flow
+          </div>
+        {:else}
+          <div class="connection-status disconnected">
+            Not connected
+          </div>
+        {/if}
+        
         <details>
-          <summary>How to get your credentials</summary>
+          <summary>How to set up the integration</summary>
           <ol>
             <li>Visit <a href="https://admin.polaraccesslink.com/" target="_blank" rel="noopener">Polar AccessLink Admin</a></li>
-            <li>Create a new client to get your Client ID and Client Secret</li>
-            <li>After authorizing your app, you'll receive an Access Token and User ID</li>
+            <li>Create a new OAuth2 client application</li>
+            <li>Set the redirect URL to: <code>{getRedirectUri()}</code></li>
+            <li>Copy your Client ID and Client Secret below</li>
+            <li>Click "Save Credentials", then "Connect with Polar"</li>
           </ol>
         </details>
       </div>
@@ -142,7 +256,7 @@
             bind:value={clientId}
             placeholder="Enter your Polar Client ID"
             required
-            disabled={isSaving}
+            disabled={isSaving || isConnecting}
           />
         </div>
         
@@ -154,50 +268,47 @@
             bind:value={clientSecret}
             placeholder="Enter your Polar Client Secret"
             required
-            disabled={isSaving}
-          />
-        </div>
-        
-        <div class="form-group">
-          <label for="polar-access-token">Access Token</label>
-          <input
-            id="polar-access-token"
-            type="password"
-            bind:value={accessToken}
-            placeholder="Enter your Access Token (required for sync)"
-            disabled={isSaving}
-          />
-        </div>
-        
-        <div class="form-group">
-          <label for="polar-user-id">User ID</label>
-          <input
-            id="polar-user-id"
-            type="text"
-            bind:value={userId}
-            placeholder="Enter your Polar User ID (required for sync)"
-            disabled={isSaving}
+            disabled={isSaving || isConnecting}
           />
         </div>
         
         <div class="button-group">
-          <button type="submit" class="save-btn" disabled={isSaving}>
+          <button type="submit" class="save-btn" disabled={isSaving || isConnecting}>
             {isSaving ? 'Saving...' : 'Save Credentials'}
           </button>
           
-          <button 
-            type="button" 
-            class="sync-btn" 
-            onclick={handleSync}
-            disabled={isSyncing || !hasCredentials || !accessToken || !userId}
-          >
-            {isSyncing ? 'Syncing...' : '🔄 Sync Activities'}
-          </button>
+          {#if !isConnected}
+            <button 
+              type="button" 
+              class="connect-btn" 
+              onclick={handleConnect}
+              disabled={!hasCredentials || isConnecting}
+            >
+              {isConnecting ? 'Connecting...' : '🔗 Connect with Polar'}
+            </button>
+          {:else}
+            <button 
+              type="button" 
+              class="disconnect-btn" 
+              onclick={handleDisconnect}
+            >
+              Disconnect
+            </button>
+            
+            <button 
+              type="button" 
+              class="sync-btn" 
+              onclick={handleSync}
+              disabled={isSyncing}
+            >
+              {isSyncing ? 'Syncing...' : '🔄 Sync Activities'}
+            </button>
+          {/if}
         </div>
       </form>
       
       {#if syncMessage}
-        <div class="message" class:error={syncMessage.includes('failed') || syncMessage.includes('error')}>
+        <div class="message" class:error={syncMessage.includes('failed') || syncMessage.includes('error') || syncMessage.includes('Failed')}>
           {syncMessage}
         </div>
       {/if}
@@ -253,6 +364,25 @@
     margin: 0 0 0.5rem 0;
   }
   
+  .connection-status {
+    padding: 0.5rem 1rem;
+    border-radius: 4px;
+    font-weight: 500;
+    margin: 0.75rem 0;
+  }
+  
+  .connection-status.connected {
+    background-color: #d4edda;
+    color: #155724;
+    border: 1px solid #c3e6cb;
+  }
+  
+  .connection-status.disconnected {
+    background-color: #f8f9fa;
+    color: #6c757d;
+    border: 1px solid #dee2e6;
+  }
+  
   details {
     margin-top: 0.5rem;
   }
@@ -279,6 +409,14 @@
   
   details a:hover {
     text-decoration: underline;
+  }
+  
+  details code {
+    background-color: #f5f5f5;
+    padding: 2px 6px;
+    border-radius: 3px;
+    font-family: monospace;
+    font-size: 0.85rem;
   }
   
   form {
@@ -341,6 +479,26 @@
   
   .save-btn:hover:not(:disabled) {
     background-color: #357abd;
+  }
+  
+  .connect-btn {
+    flex: 1;
+    background-color: #28a745;
+    color: white;
+  }
+  
+  .connect-btn:hover:not(:disabled) {
+    background-color: #218838;
+  }
+  
+  .disconnect-btn {
+    flex: 0.5;
+    background-color: #6c757d;
+    color: white;
+  }
+  
+  .disconnect-btn:hover:not(:disabled) {
+    background-color: #5a6268;
   }
   
   .sync-btn {
