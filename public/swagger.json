@@ -1,0 +1,425 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "CoachTrail API",
+    "description": "Serverless API for Polar Flow integration in CoachTrail trail running tracker",
+    "version": "1.0.0",
+    "contact": {
+      "name": "CoachTrail",
+      "url": "https://github.com/Thony-Crz/CoachTrail"
+    }
+  },
+  "servers": [
+    {
+      "url": "/api",
+      "description": "API endpoints"
+    }
+  ],
+  "paths": {
+    "/token": {
+      "post": {
+        "summary": "Exchange OAuth authorization code for access token",
+        "description": "Exchanges an OAuth 2.0 authorization code for an access token from the Polar API. This endpoint handles the OAuth flow server-side to keep the client secret secure.",
+        "tags": ["OAuth"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["code", "clientId", "clientSecret", "redirectUri", "codeVerifier"],
+                "properties": {
+                  "code": {
+                    "type": "string",
+                    "description": "Authorization code received from Polar OAuth flow"
+                  },
+                  "clientId": {
+                    "type": "string",
+                    "description": "OAuth 2.0 Client ID from Polar AccessLink"
+                  },
+                  "clientSecret": {
+                    "type": "string",
+                    "description": "OAuth 2.0 Client Secret from Polar AccessLink"
+                  },
+                  "redirectUri": {
+                    "type": "string",
+                    "description": "Redirect URI registered with Polar OAuth client"
+                  },
+                  "codeVerifier": {
+                    "type": "string",
+                    "description": "PKCE code verifier for secure OAuth flow"
+                  }
+                }
+              },
+              "example": {
+                "code": "abc123def456",
+                "clientId": "your-client-id",
+                "clientSecret": "your-client-secret",
+                "redirectUri": "https://your-app.vercel.app/",
+                "codeVerifier": "xyz789uvw012"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Token exchange successful",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "accessToken": {
+                      "type": "string",
+                      "description": "OAuth 2.0 access token for Polar API"
+                    },
+                    "expiresIn": {
+                      "type": "number",
+                      "description": "Token expiration time in seconds"
+                    },
+                    "tokenType": {
+                      "type": "string",
+                      "description": "Token type (usually 'Bearer')"
+                    }
+                  }
+                },
+                "example": {
+                  "accessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+                  "expiresIn": 3600,
+                  "tokenType": "Bearer"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Missing required parameters",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "error": "Missing required parameters: code, clientId, clientSecret, redirectUri, codeVerifier"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method not allowed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "options": {
+        "summary": "CORS preflight request",
+        "description": "Handles CORS preflight requests",
+        "tags": ["CORS"],
+        "responses": {
+          "200": {
+            "description": "CORS headers set successfully"
+          }
+        }
+      }
+    },
+    "/register": {
+      "post": {
+        "summary": "Register user with Polar AccessLink API",
+        "description": "Registers a user with the Polar AccessLink API. This must be called once after obtaining the access token. Returns OK if user is already registered.",
+        "tags": ["User Management"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["accessToken"],
+                "properties": {
+                  "accessToken": {
+                    "type": "string",
+                    "description": "OAuth 2.0 access token from /token endpoint"
+                  },
+                  "memberId": {
+                    "type": "string",
+                    "description": "Optional member ID (auto-generated if not provided)"
+                  }
+                }
+              },
+              "example": {
+                "accessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+                "memberId": "member-1234567890-abc"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "User registered or already exists",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "userId": {
+                      "type": "string",
+                      "description": "Polar user ID"
+                    },
+                    "alreadyRegistered": {
+                      "type": "boolean",
+                      "description": "True if user was already registered"
+                    }
+                  }
+                },
+                "examples": {
+                  "newUser": {
+                    "value": {
+                      "userId": "12345678",
+                      "alreadyRegistered": false
+                    }
+                  },
+                  "existingUser": {
+                    "value": {
+                      "userId": "12345678",
+                      "alreadyRegistered": true
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Missing required parameter",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "error": "Missing required parameter: accessToken"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method not allowed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "options": {
+        "summary": "CORS preflight request",
+        "description": "Handles CORS preflight requests",
+        "tags": ["CORS"],
+        "responses": {
+          "200": {
+            "description": "CORS headers set successfully"
+          }
+        }
+      }
+    },
+    "/activities": {
+      "post": {
+        "summary": "Fetch activities from Polar API",
+        "description": "Fetches trail running activities from the Polar AccessLink API and returns them in a standardized format. Creates a transaction, retrieves exercises, and commits the transaction.",
+        "tags": ["Activities"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["accessToken", "userId"],
+                "properties": {
+                  "accessToken": {
+                    "type": "string",
+                    "description": "OAuth 2.0 access token from /token endpoint"
+                  },
+                  "userId": {
+                    "type": "string",
+                    "description": "Polar user ID from /register endpoint"
+                  }
+                }
+              },
+              "example": {
+                "accessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+                "userId": "12345678"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Activities retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "activities": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "description": "Activity ID"
+                          },
+                          "date": {
+                            "type": "string",
+                            "format": "date-time",
+                            "description": "Activity start time (ISO 8601)"
+                          },
+                          "sport": {
+                            "type": "string",
+                            "description": "Sport type (e.g., RUNNING, TRAIL_RUNNING)"
+                          },
+                          "distanceMeters": {
+                            "type": "number",
+                            "description": "Distance in meters"
+                          },
+                          "ascentMeters": {
+                            "type": "number",
+                            "description": "Elevation gain in meters"
+                          },
+                          "duration": {
+                            "type": "string",
+                            "description": "Activity duration"
+                          }
+                        }
+                      }
+                    }
+                  }
+                },
+                "example": {
+                  "activities": [
+                    {
+                      "id": "activity-1234567890-abc",
+                      "date": "2024-01-15T08:30:00.000Z",
+                      "sport": "RUNNING",
+                      "distanceMeters": 10000,
+                      "ascentMeters": 350,
+                      "duration": "PT1H15M30S"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Missing required parameters",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "error": "Missing required parameters: accessToken, userId"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method not allowed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "options": {
+        "summary": "CORS preflight request",
+        "description": "Handles CORS preflight requests",
+        "tags": ["CORS"],
+        "responses": {
+          "200": {
+            "description": "CORS headers set successfully"
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "Error": {
+        "type": "object",
+        "properties": {
+          "error": {
+            "type": "string",
+            "description": "Error message"
+          },
+          "details": {
+            "type": "string",
+            "description": "Additional error details"
+          },
+          "message": {
+            "type": "string",
+            "description": "Exception message if applicable"
+          }
+        }
+      }
+    }
+  },
+  "tags": [
+    {
+      "name": "OAuth",
+      "description": "OAuth 2.0 authentication endpoints"
+    },
+    {
+      "name": "User Management",
+      "description": "User registration with Polar API"
+    },
+    {
+      "name": "Activities",
+      "description": "Activity synchronization endpoints"
+    },
+    {
+      "name": "CORS",
+      "description": "CORS preflight handling"
+    }
+  ]
+}

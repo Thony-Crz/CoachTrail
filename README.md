@@ -26,6 +26,7 @@
 - One-click synchronization of running activities
 - Automatic filtering of trail running activities (running, trail running, mountain running, etc.)
 - Avoids duplicate imports by checking existing run dates
+- **API Documentation** - Interactive Swagger UI available at `/api/docs` for testing endpoints
 - **How to use:**
   1. Deploy to Vercel (recommended) - see [VERCEL_DEPLOYMENT.md](VERCEL_DEPLOYMENT.md)
   2. Visit [Polar AccessLink Admin](https://admin.polaraccesslink.com/)
@@ -57,8 +58,24 @@ Repository Structure:
 └── api/                 # Backend (Vercel serverless functions)
     ├── token.ts            # OAuth token exchange
     ├── register.ts         # User registration
-    └── activities.ts       # Activity synchronization
+    ├── activities.ts       # Activity synchronization
+    └── docs.ts             # Swagger UI documentation endpoint
 ```
+
+### API Documentation
+
+The API includes comprehensive OpenAPI/Swagger documentation for all endpoints:
+
+- **Swagger UI**: Access the interactive API documentation at `/api/docs`
+- **OpenAPI Spec**: Download the specification at `/swagger.json`
+- **Test Endpoints**: Use the Swagger UI to test API endpoints directly on Vercel
+
+The API documentation includes:
+- `/api/token` - OAuth token exchange
+- `/api/register` - User registration with Polar API
+- `/api/activities` - Activity synchronization
+
+Each endpoint is fully documented with request/response schemas, examples, and error codes.
 
 ### Layers:
 - **Frontend (src/)**
