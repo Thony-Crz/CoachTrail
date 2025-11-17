@@ -1,15 +1,18 @@
 <script lang="ts">
   import type { GetWeeklyStatsUseCase, WeeklyStats } from '../../domain/use-cases/GetWeeklyStatsUseCase';
+  import type { DeleteWeekUseCase } from '../../domain/use-cases/DeleteWeekUseCase';
   
   interface Props {
     getWeeklyStatsUseCase: GetWeeklyStatsUseCase;
+    deleteWeekUseCase: DeleteWeekUseCase;
     refreshTrigger: number;
   }
   
-  let { getWeeklyStatsUseCase, refreshTrigger }: Props = $props();
+  let { getWeeklyStatsUseCase, deleteWeekUseCase, refreshTrigger }: Props = $props();
   
   let stats = $state<WeeklyStats[]>([]);
   let isLoading = $state(false);
+  let deletingWeek = $state<string | null>(null);
   
   async function loadStats() {
     isLoading = true;
@@ -19,6 +22,23 @@
       console.error('Failed to load stats:', error);
     } finally {
       isLoading = false;
+    }
+  }
+  
+  async function handleDeleteWeek(weekKey: string) {
+    if (!confirm(`Delete all runs for ${weekKey}?`)) {
+      return;
+    }
+    
+    deletingWeek = weekKey;
+    try {
+      await deleteWeekUseCase.execute(weekKey);
+      await loadStats(); // Reload stats after deletion
+    } catch (error) {
+      console.error('Failed to delete week:', error);
+      alert('Failed to delete week. Please try again.');
+    } finally {
+      deletingWeek = null;
     }
   }
   
@@ -46,6 +66,14 @@
             <span class="points-label">points</span>
           </div>
           <div class="stat-runs">{stat.runCount} run{stat.runCount !== 1 ? 's' : ''}</div>
+          <button 
+            class="delete-btn" 
+            onclick={() => handleDeleteWeek(stat.week)}
+            disabled={deletingWeek === stat.week}
+            aria-label="Delete week {stat.week}"
+          >
+            {deletingWeek === stat.week ? '...' : '🗑️'}
+          </button>
         </div>
       {/each}
     </div>
@@ -122,6 +150,31 @@
   .stat-runs {
     font-size: 0.875rem;
     color: #666;
+  }
+  
+  .delete-btn {
+    background: none;
+    border: none;
+    font-size: 1.25rem;
+    cursor: pointer;
+    padding: 0.5rem;
+    border-radius: 4px;
+    transition: background-color 0.2s, transform 0.1s;
+    line-height: 1;
+  }
+  
+  .delete-btn:hover:not(:disabled) {
+    background-color: #ffe0e0;
+    transform: scale(1.1);
+  }
+  
+  .delete-btn:active:not(:disabled) {
+    transform: scale(0.95);
+  }
+  
+  .delete-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
   }
   
   @media (max-width: 640px) {
