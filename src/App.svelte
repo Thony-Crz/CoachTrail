@@ -1,10 +1,16 @@
 <script lang="ts">
   import TrailRunForm from './ui/components/TrailRunForm.svelte';
   import WeeklyStatsView from './ui/components/WeeklyStatsView.svelte';
+  import PolarSettings from './ui/components/PolarSettings.svelte';
   import { LocalStorageTrailRunRepository } from './adapters/repositories/LocalStorageTrailRunRepository';
+  import { LocalStoragePolarCredentialsRepository } from './adapters/repositories/LocalStoragePolarCredentialsRepository';
+  import { PolarAccessLinkService } from './adapters/api/PolarAccessLinkService';
   import { AddTrailRunUseCase } from './domain/use-cases/AddTrailRunUseCase';
   import { GetWeeklyStatsUseCase } from './domain/use-cases/GetWeeklyStatsUseCase';
   import { DeleteWeekUseCase } from './domain/use-cases/DeleteWeekUseCase';
+  import { SavePolarCredentialsUseCase } from './domain/use-cases/SavePolarCredentialsUseCase';
+  import { GetPolarCredentialsUseCase } from './domain/use-cases/GetPolarCredentialsUseCase';
+  import { SyncPolarActivitiesUseCase } from './domain/use-cases/SyncPolarActivitiesUseCase';
 
   // Initialize dependencies
   const repository = new LocalStorageTrailRunRepository();
@@ -12,9 +18,24 @@
   const getWeeklyStatsUseCase = new GetWeeklyStatsUseCase(repository);
   const deleteWeekUseCase = new DeleteWeekUseCase(repository);
 
+  // Polar integration dependencies
+  const polarCredentialsRepo = new LocalStoragePolarCredentialsRepository();
+  const polarApiService = new PolarAccessLinkService();
+  const savePolarCredentialsUseCase = new SavePolarCredentialsUseCase(polarCredentialsRepo);
+  const getPolarCredentialsUseCase = new GetPolarCredentialsUseCase(polarCredentialsRepo);
+  const syncPolarActivitiesUseCase = new SyncPolarActivitiesUseCase(
+    polarApiService,
+    polarCredentialsRepo,
+    repository
+  );
+
   let refreshTrigger = $state(0);
 
   function handleRunAdded() {
+    refreshTrigger++;
+  }
+
+  function handleSyncComplete() {
     refreshTrigger++;
   }
 </script>
@@ -28,6 +49,12 @@
 
     <div class="content">
       <div class="section">
+        <PolarSettings 
+          {savePolarCredentialsUseCase}
+          {getPolarCredentialsUseCase}
+          {syncPolarActivitiesUseCase}
+          onSyncComplete={handleSyncComplete}
+        />
         <TrailRunForm {addRunUseCase} onRunAdded={handleRunAdded} />
       </div>
 
