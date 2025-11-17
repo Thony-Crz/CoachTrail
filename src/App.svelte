@@ -4,11 +4,13 @@
   import { LocalStorageTrailRunRepository } from './adapters/repositories/LocalStorageTrailRunRepository';
   import { AddTrailRunUseCase } from './domain/use-cases/AddTrailRunUseCase';
   import { GetWeeklyStatsUseCase } from './domain/use-cases/GetWeeklyStatsUseCase';
+  import { DeleteWeekUseCase } from './domain/use-cases/DeleteWeekUseCase';
 
   // Initialize dependencies
   const repository = new LocalStorageTrailRunRepository();
   const addRunUseCase = new AddTrailRunUseCase(repository);
   const getWeeklyStatsUseCase = new GetWeeklyStatsUseCase(repository);
+  const deleteWeekUseCase = new DeleteWeekUseCase(repository);
 
   let refreshTrigger = $state(0);
 
@@ -30,7 +32,7 @@
       </div>
 
       <div class="section">
-        <WeeklyStatsView {getWeeklyStatsUseCase} {refreshTrigger} />
+        <WeeklyStatsView {getWeeklyStatsUseCase} {deleteWeekUseCase} {refreshTrigger} />
       </div>
     </div>
   </div>
