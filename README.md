@@ -91,6 +91,16 @@ npm run preview
 
 The app is automatically deployed to GitHub Pages via GitHub Actions when pushing to the `main` branch.
 
+**⚠️ Important**: Due to Polar API CORS restrictions, you need to set up a CORS proxy for production. See **[DEPLOYMENT.md](DEPLOYMENT.md)** for complete deployment instructions including proxy setup.
+
+### Quick Deployment Steps
+
+1. Set up a CORS proxy (Cloudflare Workers recommended - free)
+2. Add `VITE_POLAR_PROXY_URL` to GitHub repository secrets
+3. Push to `main` branch - GitHub Actions will build and deploy automatically
+
+For detailed instructions, see **[DEPLOYMENT.md](DEPLOYMENT.md)**.
+
 ### Manual Deployment
 ```bash
 npm run deploy
