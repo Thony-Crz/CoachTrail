@@ -1,8 +1,9 @@
 import { getBackendApiUrl } from '../../config/env';
 
 /**
- * Service to handle Polar OAuth 2.0 authorization flow with PKCE
- * Now uses Vercel backend to handle token exchange and user registration
+ * Service to handle Polar OAuth 2.0 authorization flow
+ * Uses standard OAuth flow with client secret (no PKCE) for confidential clients
+ * Vercel backend handles token exchange and user registration
  */
 export class PolarOAuthService {
   private readonly authorizationEndpoint = 'https://flow.polar.com/oauth2/authorization';
@@ -10,22 +11,13 @@ export class PolarOAuthService {
   private readonly registerEndpoint = getBackendApiUrl('/api/register');
   
   /**
-   * Generate a random string for code verifier (PKCE)
+   * Generate a random string for code verifier
+   * Note: Kept for backend compatibility, even though PKCE is not used in authorization
    */
   private generateCodeVerifier(): string {
     const array = new Uint8Array(32);
     crypto.getRandomValues(array);
     return this.base64URLEncode(array);
-  }
-  
-  /**
-   * Generate code challenge from verifier (PKCE)
-   */
-  private async generateCodeChallenge(verifier: string): Promise<string> {
-    const encoder = new TextEncoder();
-    const data = encoder.encode(verifier);
-    const hash = await crypto.subtle.digest('SHA-256', data);
-    return this.base64URLEncode(new Uint8Array(hash));
   }
   
   /**
@@ -50,27 +42,32 @@ export class PolarOAuthService {
   
   /**
    * Build authorization URL and initiate OAuth flow
+   * Uses standard OAuth flow without PKCE for confidential clients
    */
   async initiateAuthorization(clientId: string, redirectUri: string): Promise<void> {
-    const codeVerifier = this.generateCodeVerifier();
-    const codeChallenge = await this.generateCodeChallenge(codeVerifier);
     const state = this.generateState();
     
-    // Store code verifier and state in sessionStorage for later use
-    sessionStorage.setItem('polar_code_verifier', codeVerifier);
+    // Store state for CSRF validation
     sessionStorage.setItem('polar_oauth_state', state);
+    
+    // Generate code_verifier for backend compatibility
+    // (backend still sends it to Polar, but Polar ignores it for confidential clients)
+    const codeVerifier = this.generateCodeVerifier();
+    sessionStorage.setItem('polar_code_verifier', codeVerifier);
     
     const params = new URLSearchParams({
       response_type: 'code',
       client_id: clientId,
       redirect_uri: redirectUri,
       scope: 'accesslink.read_all',
-      code_challenge: codeChallenge,
-      code_challenge_method: 'S256',
       state: state,
+      // PKCE parameters removed: code_challenge and code_challenge_method
+      // Polar uses client secret authentication for confidential clients
     });
     
     const authUrl = `${this.authorizationEndpoint}?${params.toString()}`;
+    
+    console.log('🔐 OAuth Authorization URL (without PKCE):', authUrl);
     
     // Redirect to Polar authorization page
     window.location.href = authUrl;
