@@ -16,11 +16,12 @@ export class LocalStoragePolarCredentialsRepository implements PolarCredentialsR
 
   async save(credentials: PolarCredentials): Promise<void> {
     // Trim whitespace from credentials to prevent OAuth errors
+    // Convert optional values to strings first to handle cases where they might be numbers (e.g., userId from Polar API)
     const trimmedCredentials: PolarCredentials = {
-      clientId: credentials.clientId?.trim(),
-      clientSecret: credentials.clientSecret?.trim(),
-      accessToken: credentials.accessToken?.trim(),
-      userId: credentials.userId?.trim(),
+      clientId: credentials.clientId.trim(),
+      clientSecret: credentials.clientSecret.trim(),
+      accessToken: credentials.accessToken ? String(credentials.accessToken).trim() : undefined,
+      userId: credentials.userId ? String(credentials.userId).trim() : undefined,
     };
     localStorage.setItem(STORAGE_KEY, JSON.stringify(trimmedCredentials));
   }
