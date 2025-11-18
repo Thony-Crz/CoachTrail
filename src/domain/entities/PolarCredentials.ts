@@ -10,5 +10,5 @@ export function isValidCredentials(creds: PolarCredentials | null): boolean {
 }
 
 export function hasAccessToken(creds: PolarCredentials | null): boolean {
-  return !!(creds && creds.accessToken);
+  return !!(creds && creds.accessToken && creds.userId);
 }
