@@ -1,0 +1,48 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="200" height="200">
+  <!-- Mountain to climb with path -->
+  <defs>
+    <linearGradient id="mountainGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#8B4513;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#654321;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="snowGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#ffffff;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#e6f2ff;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  
+  <!-- Main mountain -->
+  <path d="M 100 30 L 150 120 L 50 120 Z" fill="url(#mountainGrad)" stroke="#654321" stroke-width="2"/>
+  
+  <!-- Snow cap -->
+  <path d="M 100 30 L 110 50 L 90 50 Z" fill="url(#snowGrad)"/>
+  
+  <!-- Climbing path (zigzag) -->
+  <path d="M 50 120 L 60 110 L 70 100 L 80 90 L 90 80 L 100 70 L 110 60 L 115 50" 
+        stroke="#ff6b6b" stroke-width="3" stroke-dasharray="5,3" fill="none" stroke-linecap="round"/>
+  
+  <!-- Points markers along the path -->
+  <circle cx="60" cy="110" r="5" fill="#ffd700" stroke="#ff6b6b" stroke-width="2"/>
+  <circle cx="80" cy="90" r="5" fill="#ffd700" stroke="#ff6b6b" stroke-width="2"/>
+  <circle cx="100" cy="70" r="5" fill="#ffd700" stroke="#ff6b6b" stroke-width="2"/>
+  <circle cx="115" cy="50" r="6" fill="#ffd700" stroke="#ff6b6b" stroke-width="2">
+    <animate attributeName="r" values="6;8;6" dur="1.5s" repeatCount="indefinite"/>
+  </circle>
+  
+  <!-- Running track (oval at bottom) -->
+  <ellipse cx="100" cy="160" rx="70" ry="20" fill="none" stroke="#ff6b6b" stroke-width="3"/>
+  <ellipse cx="100" cy="160" rx="60" ry="15" fill="none" stroke="#ff6b6b" stroke-width="2" stroke-dasharray="5,5"/>
+  
+  <!-- Runner icon on track -->
+  <g transform="translate(30, 150)">
+    <circle cx="0" cy="0" r="4" fill="#333"/>
+    <path d="M 0 4 L 0 12 M 0 7 L -4 9 M 0 7 L 4 9 M 0 12 L -3 18 M 0 12 L 3 18" 
+          stroke="#333" stroke-width="2" stroke-linecap="round"/>
+  </g>
+  
+  <!-- Point counter badge -->
+  <g transform="translate(160, 40)">
+    <circle cx="0" cy="0" r="18" fill="#4CAF50" stroke="#fff" stroke-width="2"/>
+    <text x="0" y="6" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" font-weight="bold" fill="#fff">+</text>
+  </g>
+</svg>
